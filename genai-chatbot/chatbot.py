@@ -3,37 +3,72 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
-# Load API key from the .env file
+# Load API key
 load_dotenv(Path(__file__).with_name(".env"))
 
 api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-    print("API key not found. Please check your .env file.")
+    print("API key not found. Check your .env file.")
     raise SystemExit
 
 # Connect to Gemini
 client = genai.Client(api_key=api_key)
 
-print("Welcome to Nikhil's GenAI Chatbot!")
-print("Type 'exit' to stop the chatbot.")
+# Store conversation history
+history = []
 
-# Chat loop
+print("Welcome to Nikhil's GenAI Chatbot!")
+print("Model: Gemini 3.5 Flash Lite")
+print("Conversation memory: Enabled")
+print("Type 'exit' to stop.\n")
+
 while True:
-    question = input("\nYou: ")
+    question = input("You: ").strip()
 
     if question.lower() == "exit":
         print("Goodbye!")
         break
 
+    if not question:
+        continue
+
     try:
-        response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=question
+        # Add user message to history
+        history.append(
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=question)]
+            )
         )
 
-        print("\nGemini:", response.text)
+        print("Gemini is thinking...")
+
+        response = client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=history,
+            config=types.GenerateContentConfig(
+                http_options=types.HttpOptions(timeout=60000)
+            )
+        )
+
+        answer = response.text or "Sorry, I couldn't generate a response."
+
+        print("\nGemini:", answer, "\n")
+
+        # Save Gemini response for conversation memory
+        history.append(
+            types.Content(
+                role="model",
+                parts=[types.Part.from_text(text=answer)]
+            )
+        )
 
     except Exception as error:
-        print("Something went wrong:", error)
+        print("\nSomething went wrong:", error, "\n")
+
+        # Remove unanswered user message
+        if history and history[-1].role == "user":
+            history.pop()
