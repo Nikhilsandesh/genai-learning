@@ -1,4 +1,7 @@
 # 🤖 Gemini AI Chatbot
+## Live Demo
+
+Try the chatbot here: https://nikhil-genai-chatbot.streamlit.app
 
 My first Generative AI project built using Python and Google's Gemini API.
 
